@@ -28,11 +28,11 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import logging
+from time import gmtime
 import unittest
 
 import waveforecast.core.settings as settings
 from waveforecast.core.waveforecast import WaveForecast
-
 class  WaveForecast_TestCase(unittest.TestCase):
     def setUp(self):
         self.waveforecast = WaveForecast(settings)
@@ -45,12 +45,14 @@ class  WaveForecast_TestCase(unittest.TestCase):
     def test_waveforecast_(self):
         #assert x != y;
         #self.assertEqual(x, y, "Msg");
-        theDate = 10;
-        logging.debug('TheDate'+str(theDate))
-        self.waveforecast.setDate(theDate)
+        
+        gmTime = gmtime()
+        logging.debug('TheDate'+str(gmTime))
+
+        self.waveforecast.setDate(gmTime,6)
 
 if __name__ == '__main__':
     settings.setLogger()
-    logging.debug('Test')
+    logging.debug('test_waveforecast')
     unittest.main()
 

@@ -28,26 +28,55 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 __author__="cooke"
 __date__ ="$27-Nov-2011 11:39:41$"
+import logging
+from time import gmtime
+from time import strftime
+import httplib
+
 from pydap.client import open_url
 import pydap.lib
-import logging
 pydap.lib.CACHE = "/tmp/pydap-cache/"
 logger=None
 class WaveForecast(object):
     noaaurl='http://nomads.ncep.noaa.gov:9090/dods/wave/nww3/nww320111119/nww320111119_18z'
+    baseurl='http://nomads.ncep.noaa.gov:9090/dods/wave/nww3/nww3'
+    oururl='http://nomads.ncep.noaa.gov:9090/dods/wave/nww3/nww3'
+    infourl = ''
 
-    def __init__(self,settings,theDate=None):
-        logging.debug('Creating the WaveForecast')
+    def __init__(self,settings,gmTime=gmtime()):
+        logging.debug('Creating the WaveForecast:'+str(gmTime))
 
-    def setDate(self,theDate):
-        pass
+        if gmTime.tm_hour > 18:
+            tm_hour = 18
+        elif gmTime.tm_hour > 12:
+            tm_hour = 12
+        elif gmTime.tm_hour > 6:
+            tm_hour = 6
+        else:
+            tm_hour = 0
+        logging.debug('Hour:'+str(tm_hour))
+        self.setDate(gmTime,tm_hour)
+
+     def exists(site, path):
+        conn = HTTPConnection(site)
+        conn.request('HEAD', path)
+        response = conn.getresponse()
+        conn.close()
+        return response.status == 200
+        
+    def setDate(self,gmTime,tm_hour):
+        todayString = strftime('%Y%m%d',gmTime)
+        self.oururl = self.baseurl + todayString+'/nww3'+todayString+'_%02dz'% tm_hour
+        self.infourl = self.oururl+'.info'
+        logging.debug('BASEURL:'+self.oururl+' INFO URL:'+self.infourl)
+
 
     def getConditions(self,lattidue,longitude):
         pass
 
 
 if __name__ == "__main__":
-    dataset = open_url(url)
+    #dataset = open_url(url)
     #print type(dataset)
     #print dataset.keys()
     for key,dirpwsfc in dataset.items():

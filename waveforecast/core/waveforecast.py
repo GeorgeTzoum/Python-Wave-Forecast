@@ -3,10 +3,10 @@
 
 # Copyright (c) 2011, Python Wave Forecast team
 # All rights reserved.
-# 
+#
 # Redistribution and use in source and binary forms, with or without modification,
 # are permitted provided that the following conditions are met:
-# 
+#
 #     1. Redistributions of source code must retain the above copyright notice,
 #        this list of conditions and the following disclaimer.
 #     2. Redistributions in binary form must reproduce the above copyright notice,
@@ -15,7 +15,7 @@
 #     3. Neither the name of the Python Wave Forecast team nor the names of its
 #        contributors may be used to endorse or promote products derived from this
 #        software without specific prior written permission.
-# 
+#
 # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 # ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
 # WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -28,12 +28,43 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 __author__="cooke"
 __date__ ="$27-Nov-2011 11:39:41$"
+from pydap.client import open_url
+import pydap.lib
+import logging
+pydap.lib.CACHE = "/tmp/pydap-cache/"
+logger=None
+class WaveForecast(object):
+    noaaurl='http://nomads.ncep.noaa.gov:9090/dods/wave/nww3/nww320111119/nww320111119_18z'
 
-class WaveForcast(object):
-    def __init__(self):
-        pass
+    def __init__(self,settings,theDate=None):
+        logging.debug('Creating the WaveForecast')
 
     def setDate(self,theDate):
         pass
+
     def getConditions(self,lattidue,longitude):
         pass
+
+
+if __name__ == "__main__":
+    dataset = open_url(url)
+    #print type(dataset)
+    #print dataset.keys()
+    for key,dirpwsfc in dataset.items():
+        print '########################################'
+        print key
+        if key != 'time':
+            data = dirpwsfc[ : , (-10 == dirpwsfc.lat) , (dirpwsfc.lon == 340) ]
+        else:
+            print data.array
+            print len(data.array)
+
+        try:
+            raw= data.array[:]
+            print 'The first one:'
+            print raw[0]
+            print 'The Secdond one'
+            print raw[1]
+        except Exception:
+            raw = data.array
+            print 'The value: '+str(raw.data)

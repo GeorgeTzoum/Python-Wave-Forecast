@@ -27,13 +27,16 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+import logging
 import unittest
 
+import waveforecast.core.settings as settings
+from waveforecast.core.waveforecast import WaveForecast
 
-class  Waveforecast_TestCase(unittest.TestCase):
-    #def setUp(self):
-    #    self.foo = Waveforecast_()
-    #
+class  WaveForecast_TestCase(unittest.TestCase):
+    def setUp(self):
+        self.waveforecast = WaveForecast(settings)
+        
 
     #def tearDown(self):
     #    self.foo.dispose()
@@ -42,8 +45,12 @@ class  Waveforecast_TestCase(unittest.TestCase):
     def test_waveforecast_(self):
         #assert x != y;
         #self.assertEqual(x, y, "Msg");
-        self.fail("TODO: Write test")
+        theDate = 10;
+        logging.debug('TheDate'+str(theDate))
+        self.waveforecast.setDate(theDate)
 
 if __name__ == '__main__':
+    settings.setLogger()
+    logging.debug('Test')
     unittest.main()
 

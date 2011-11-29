@@ -27,10 +27,14 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+
+from datetime import datetime
+from datetime import timedelta
 import logging
-from time import gmtime
+from math import fabs
 import unittest
 
+import pydap
 import waveforecast.core.settings as settings
 from waveforecast.core.waveforecast import WaveForecast
 class  WaveForecast_TestCase(unittest.TestCase):
@@ -41,15 +45,54 @@ class  WaveForecast_TestCase(unittest.TestCase):
     #def tearDown(self):
     #    self.foo.dispose()
     #    self.foo = None
+    def test_choosetime(self):
+        gmTime = datetime.utcnow()
+        gmTime = gmTime.replace(hour=23)
+        self.assertEqual(self.waveforecast.chooseTime(gmTime),18)
+        gmTime = gmTime.replace(hour=18)
+        self.assertEqual(gmTime.hour,18)
+        self.assertEqual(self.waveforecast.chooseTime(gmTime),18)
+        gmTime = gmTime.replace(hour=17)
+        logging.debug(gmTime.hour)
+        self.assertEqual(self.waveforecast.chooseTime(gmTime),12)
+        gmTime = gmTime.replace(hour= 12)
+        self.assertEqual(self.waveforecast.chooseTime(gmTime),12)
+        gmTime = gmTime.replace(hour= 11)
+        self.assertEqual(self.waveforecast.chooseTime(gmTime),6)
+        gmTime = gmTime.replace(hour= 6)
+        self.assertEqual(self.waveforecast.chooseTime(gmTime),6)
+        gmTime = gmTime.replace(hour= 5)
+        self.assertEqual(self.waveforecast.chooseTime(gmTime),0)
+        gmTime = gmTime.replace(hour= 0)
+        self.assertEqual(self.waveforecast.chooseTime(gmTime),0)
+
 
     def test_waveforecast_(self):
         #assert x != y;
         #self.assertEqual(x, y, "Msg");
-        
-        gmTime = gmtime()
+        gmTime = datetime.utcnow()
         logging.debug('TheDate'+str(gmTime))
 
-        self.waveforecast.setDate(gmTime,6)
+        ourTestTime = gmTime+timedelta(hours=7)
+        logging.debug('The Future Date'+str(ourTestTime)+' Type: '+
+            str(type(ourTestTime)))
+        hour = self.waveforecast.chooseTime(ourTestTime)
+        dataset = self.waveforecast.getDataSet(ourTestTime,hour)
+        url = self.waveforecast.oururl
+
+        hour1 = self.waveforecast.chooseTime(gmTime)
+        dataset1 = self.waveforecast.getDataSet(gmTime,hour1)
+        url1 = self.waveforecast.oururl
+        self.assertEqual(url1,url)
+        self.assertIsInstance(dataset, pydap.model.DatasetType)
+        
+        ourTestTime = gmTime+timedelta(hours=-17)
+        logging.debug('The Future Date'+str(ourTestTime)+' Type: '+
+            str(type(ourTestTime)))
+        hour = self.waveforecast.chooseTime(ourTestTime)
+        dataset = self.waveforecast.getDataSet(ourTestTime,hour)
+        url = self.waveforecast.oururl
+        self.assertNotEqual(url, url1, 'SHould not be the same')
 
 if __name__ == '__main__':
     settings.setLogger()

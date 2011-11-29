@@ -28,54 +28,61 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 __author__="cooke"
 __date__ ="$27-Nov-2011 11:39:41$"
+from datetime import datetime
+from datetime import timedelta
+from httplib import HTTP
+from httplib import HTTPConnection
 import logging
 from time import gmtime
 from time import strftime
-import httplib
+from urlparse import urlparse
 
 from pydap.client import open_url
+from pydap.exceptions import ServerError
 import pydap.lib
 pydap.lib.CACHE = "/tmp/pydap-cache/"
 logger=None
 class WaveForecast(object):
-    noaaurl='http://nomads.ncep.noaa.gov:9090/dods/wave/nww3/nww320111119/nww320111119_18z'
     baseurl='http://nomads.ncep.noaa.gov:9090/dods/wave/nww3/nww3'
     oururl='http://nomads.ncep.noaa.gov:9090/dods/wave/nww3/nww3'
-    infourl = ''
+    dataset = None
 
-    def __init__(self,settings,gmTime=gmtime()):
+    def __init__(self,settings,gmTime=datetime.utcnow()):
         logging.debug('Creating the WaveForecast:'+str(gmTime))
+        tm_hour = self.chooseTime(gmTime)
+        self.dataset = self.getDataSet(gmTime,tm_hour)
 
-        if gmTime.tm_hour > 18:
+    def chooseTime(self,gmTime):
+        if isinstance(gmTime, datetime):
+            gmTime = gmTime.utctimetuple()
+        if gmTime.tm_hour >= 18:
             tm_hour = 18
-        elif gmTime.tm_hour > 12:
+        elif gmTime.tm_hour >= 12:
             tm_hour = 12
-        elif gmTime.tm_hour > 6:
+        elif gmTime.tm_hour >= 6:
             tm_hour = 6
         else:
             tm_hour = 0
         logging.debug('Hour:'+str(tm_hour))
-        self.setDate(gmTime,tm_hour)
-
-     def exists(site, path):
-        conn = HTTPConnection(site)
-        conn.request('HEAD', path)
-        response = conn.getresponse()
-        conn.close()
-        return response.status == 200
+        return tm_hour
         
-    def setDate(self,gmTime,tm_hour):
-        todayString = strftime('%Y%m%d',gmTime)
+    def getDataSet(self,gmTime,tm_hour):
+        todayString = gmTime.strftime('%Y%m%d')
         self.oururl = self.baseurl + todayString+'/nww3'+todayString+'_%02dz'% tm_hour
-        self.infourl = self.oururl+'.info'
-        logging.debug('BASEURL:'+self.oururl+' INFO URL:'+self.infourl)
-
+        logging.debug('BASEURL:'+self.oururl)
+        try:
+            return open_url(self.oururl)
+        except ServerError:
+            logging.debug('URL DOES NOTEXIST')
+            gmTime -= timedelta(hours=6)
+            return self.getDataSet(gmTime,self.chooseTime(gmTime))
 
     def getConditions(self,lattidue,longitude):
         pass
 
 
 if __name__ == "__main__":
+    dataset = None
     #dataset = open_url(url)
     #print type(dataset)
     #print dataset.keys()

@@ -37,21 +37,40 @@ from time import gmtime
 from time import strftime
 from urlparse import urlparse
 
+import numpy
+from pydap.client import open_dods
 from pydap.client import open_url
 from pydap.exceptions import ServerError
 import pydap.lib
 pydap.lib.CACHE = "/tmp/pydap-cache/"
 logger=None
+wavemetrics = {
+'dirpwsfc':'** surface none primary wave direction [deg] ',
+'dirswsfc':'** surface none secondary wave direction [deg]',
+'htsgwsfc':'** surface none significant height of combined wind waves and swell [m] ',
+'perpwsfc':'** surface none primary wave mean period [s] ',
+'perswsfc':'** surface none secondary wave mean period [s] ',
+'ugrdsfc':'** surface none u-component of wind [m/s] ',
+'vgrdsfc':'** surface none v-component of wind [m/s] ',
+'wdirsfc':'** surface none wind direction (from which blowing) [deg] ',
+'windsfc':'** surface none wind speed [m/s] ',
+'wvdirsfc':'** surface none direction of wind waves [deg] ',
+'wvpersfc':'** surface none mean period of wind waves [s] ',
+#'time':'*'
+}
+
 class WaveForecast(object):
     baseurl='http://nomads.ncep.noaa.gov:9090/dods/wave/nww3/nww3'
     oururl='http://nomads.ncep.noaa.gov:9090/dods/wave/nww3/nww3'
     dataset = None
+    lattitudes = range(-78,79)
+    longitudes = list(numpy.linspace(0,358.75,288))
 
     def __init__(self,settings,gmTime=datetime.utcnow()):
         logging.debug('Creating the WaveForecast:'+str(gmTime))
-        tm_hour = self.chooseTime(gmTime)
-        self.dataset = self.getDataSet(gmTime,tm_hour)
-
+        self.gmTime = gmTime
+        self.tm_hour = self.chooseTime(gmTime)
+        
     def chooseTime(self,gmTime):
         if isinstance(gmTime, datetime):
             gmTime = gmTime.utctimetuple()
@@ -66,21 +85,46 @@ class WaveForecast(object):
         logging.debug('Hour:'+str(tm_hour))
         return tm_hour
         
-    def getDataSet(self,gmTime,tm_hour):
-        todayString = gmTime.strftime('%Y%m%d')
-        self.oururl = self.baseurl + todayString+'/nww3'+todayString+'_%02dz'% tm_hour
-        logging.debug('BASEURL:'+self.oururl)
+    def getData(self,lattitudeIndex,longitudeIndex,variable):
+        todayString = self.gmTime.strftime('%Y%m%d')
+        self.oururl = self.baseurl + todayString+'/nww3'+\
+            todayString+'_%02dz' % self.tm_hour
+        self.dodsUrl = self.oururl+".dods?"+\
+                "{2}.{2}[0:1:60][{0}:1:{0}][{1}:1:{1}]".format(
+                lattitudeIndex,longitudeIndex,variable)
+        logging.debug('DODS:'+self.dodsUrl)
         try:
-            return open_url(self.oururl)
+            return open_dods(self.dodsUrl)
         except ServerError:
             logging.debug('URL DOES NOTEXIST')
-            gmTime -= timedelta(hours=6)
-            return self.getDataSet(gmTime,self.chooseTime(gmTime))
+            self.gmTime -= timedelta(hours=6)
+            self.tm_hour = self.chooseTime(self.gmTime)
+            return self.getData(lattitudeIndex,longitudeIndex,variable)
 
-    def getConditions(self,lattidue,longitude):
-        pass
+    def getConditions(self,lattitude,longitude):
+        lattitude = round(float(lattitude));
+        #Find closest in database...
+        longitude = round(float(longitude)/1.25)*1.25
+        if longitude < 0 and longitude > -180:
+            longitude = 360+longitude
 
-
+        lattitudeIndex = self.lattitudes.index(lattitude)
+        longitudeIndex = self.longitudes.index(longitude)
+        results = dict();
+        for variable in wavemetrics.keys():
+            if variable == 'time'or variable == 'lat' or variable == 'lon':
+                continue
+            logging.debug('Calling server: '+variable)
+            waves = self.getData(lattitudeIndex, longitudeIndex, variable)
+            logging.debug('Called server')
+            logging.debug(waves[variable])
+            logging.debug(waves[variable][0])
+            waveinfos = waves[variable]
+            results[wavemetrics[variable]] = waveinfos
+    
+        retDict = {'results':results,
+                              'lat':lattitude,
+                              'lon':longitude,}
 if __name__ == "__main__":
     dataset = None
     #dataset = open_url(url)

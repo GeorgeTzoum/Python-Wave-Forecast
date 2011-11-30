@@ -45,7 +45,7 @@ class  WaveForecast_TestCase(unittest.TestCase):
     #def tearDown(self):
     #    self.foo.dispose()
     #    self.foo = None
-    def test_choosetime(self):
+    def teest_choosetime(self):
         gmTime = datetime.utcnow()
         gmTime = gmTime.replace(hour=23)
         self.assertEqual(self.waveforecast.chooseTime(gmTime),18)
@@ -67,7 +67,7 @@ class  WaveForecast_TestCase(unittest.TestCase):
         self.assertEqual(self.waveforecast.chooseTime(gmTime),0)
 
 
-    def test_waveforecast_(self):
+    def teest_waveforecast_(self):
         #assert x != y;
         #self.assertEqual(x, y, "Msg");
         gmTime = datetime.utcnow()
@@ -93,6 +93,10 @@ class  WaveForecast_TestCase(unittest.TestCase):
         dataset = self.waveforecast.getDataSet(ourTestTime,hour)
         url = self.waveforecast.oururl
         self.assertNotEqual(url, url1, 'SHould not be the same')
+
+    def test_getconditions(self):
+        dataset = self.waveforecast.getConditions(-34,-16);
+        logging.debug(dataset)
 
 if __name__ == '__main__':
     settings.setLogger()

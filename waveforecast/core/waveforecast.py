@@ -38,6 +38,7 @@ from pydap.client import open_dods
 from pydap.exceptions import ServerError
 import pydap.lib
 #pydap.lib.CACHE = "/tmp/pydap-cache/"
+#The different Metrics:
 wavemetrics = {
 'dirpwsfc':'** surface none primary wave direction [deg] ',
 'dirswsfc':'** surface none secondary wave direction [deg]',
@@ -50,7 +51,6 @@ wavemetrics = {
 'windsfc':'** surface none wind speed [m/s] ',
 'wvdirsfc':'** surface none direction of wind waves [deg] ',
 'wvpersfc':'** surface none mean period of wind waves [s] ',
-#'time':'*'
 }
 
 dataset = {}
@@ -106,6 +106,8 @@ class GetForeCastThread(threading.Thread):
 
 lattitudes = range(-78, 79)
 longitudes = list(numpy.linspace(0, 358.75, 288))
+times = list(numpy.linspace(0, 60*3, 61))
+
 
 def getWaveConditions(lattitude, longitude,gmTime=datetime.utcnow()):
         tm_hour = chooseTime(gmTime)
@@ -133,7 +135,8 @@ def getWaveConditions(lattitude, longitude,gmTime=datetime.utcnow()):
             thread.join()
         logging.debug('\n\n\n-----------------------------------------------\nAll threads stopped:'+str(dataset))
 
-        retDict = {'results':dataset,
+        retDict = {
+            'results':dataset,
             'lat':lattitude,
             'lon':longitude, }
 

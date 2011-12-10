@@ -91,12 +91,14 @@ class GetForeCastThread(threading.Thread):
                                                            self.variable)
         logging.debug('DODS:' + dodsUrl)
         try:
-            return open_dods(dodsUrl)
+            data = open_dods(dodsUrl)
         except ServerError:
             logging.debug('URL DOES NOTEXIST')
             self.gmTime -= timedelta(hours=6)
             self.tm_hour = chooseTime(self.gmTime)
             return self.getData()
+        #logging.debug(data[self.variable][:])
+        return data[self.variable][:]
 
     def run (self):
         global dataset

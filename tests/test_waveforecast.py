@@ -35,67 +35,41 @@ from math import fabs
 import unittest
 
 import pydap
+from waveforecast.core.waveforecast import chooseTime
+from waveforecast.core.waveforecast import getWaveConditions
 import waveforecast.core.settings as settings
-from waveforecast.core.waveforecast import WaveForecast
 class  WaveForecast_TestCase(unittest.TestCase):
     def setUp(self):
-        self.waveforecast = WaveForecast(settings)
+        pass
         
 
     #def tearDown(self):
     #    self.foo.dispose()
     #    self.foo = None
-    def teest_choosetime(self):
+    def test_choosetime(self):
         gmTime = datetime.utcnow()
         gmTime = gmTime.replace(hour=23)
-        self.assertEqual(self.waveforecast.chooseTime(gmTime),18)
+        self.assertEqual(chooseTime(gmTime),18)
         gmTime = gmTime.replace(hour=18)
         self.assertEqual(gmTime.hour,18)
-        self.assertEqual(self.waveforecast.chooseTime(gmTime),18)
+        self.assertEqual(chooseTime(gmTime),18)
         gmTime = gmTime.replace(hour=17)
         logging.debug(gmTime.hour)
-        self.assertEqual(self.waveforecast.chooseTime(gmTime),12)
+        self.assertEqual(chooseTime(gmTime),12)
         gmTime = gmTime.replace(hour= 12)
-        self.assertEqual(self.waveforecast.chooseTime(gmTime),12)
+        self.assertEqual(chooseTime(gmTime),12)
         gmTime = gmTime.replace(hour= 11)
-        self.assertEqual(self.waveforecast.chooseTime(gmTime),6)
+        self.assertEqual(chooseTime(gmTime),6)
         gmTime = gmTime.replace(hour= 6)
-        self.assertEqual(self.waveforecast.chooseTime(gmTime),6)
+        self.assertEqual(chooseTime(gmTime),6)
         gmTime = gmTime.replace(hour= 5)
-        self.assertEqual(self.waveforecast.chooseTime(gmTime),0)
+        self.assertEqual(chooseTime(gmTime),0)
         gmTime = gmTime.replace(hour= 0)
-        self.assertEqual(self.waveforecast.chooseTime(gmTime),0)
+        self.assertEqual(chooseTime(gmTime),0)
 
-
-    def teest_waveforecast_(self):
-        #assert x != y;
-        #self.assertEqual(x, y, "Msg");
-        gmTime = datetime.utcnow()
-        logging.debug('TheDate'+str(gmTime))
-
-        ourTestTime = gmTime+timedelta(hours=7)
-        logging.debug('The Future Date'+str(ourTestTime)+' Type: '+
-            str(type(ourTestTime)))
-        hour = self.waveforecast.chooseTime(ourTestTime)
-        dataset = self.waveforecast.getDataSet(ourTestTime,hour)
-        url = self.waveforecast.oururl
-
-        hour1 = self.waveforecast.chooseTime(gmTime)
-        dataset1 = self.waveforecast.getDataSet(gmTime,hour1)
-        url1 = self.waveforecast.oururl
-        self.assertEqual(url1,url)
-        self.assertIsInstance(dataset, pydap.model.DatasetType)
-        
-        ourTestTime = gmTime+timedelta(hours=-17)
-        logging.debug('The Future Date'+str(ourTestTime)+' Type: '+
-            str(type(ourTestTime)))
-        hour = self.waveforecast.chooseTime(ourTestTime)
-        dataset = self.waveforecast.getDataSet(ourTestTime,hour)
-        url = self.waveforecast.oururl
-        self.assertNotEqual(url, url1, 'SHould not be the same')
 
     def test_getconditions(self):
-        dataset = self.waveforecast.getConditions(-34,-16);
+        dataset = getWaveConditions(-34,-16);
         logging.debug(dataset)
 
 if __name__ == '__main__':

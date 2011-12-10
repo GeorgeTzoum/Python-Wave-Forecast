@@ -37,7 +37,7 @@ import numpy
 from pydap.client import open_dods
 from pydap.exceptions import ServerError
 import pydap.lib
-pydap.lib.CACHE = "/tmp/pydap-cache/"
+#pydap.lib.CACHE = "/tmp/pydap-cache/"
 wavemetrics = {
 'dirpwsfc':'** surface none primary wave direction [deg] ',
 'dirswsfc':'** surface none secondary wave direction [deg]',
@@ -102,31 +102,25 @@ class GetForeCastThread(threading.Thread):
         global dataset
         dataset[self.variable] = self.getData()
 
-class WaveForecast(object):
-    dataset = None
-    lattitudes = range(-78, 79)
-    longitudes = list(numpy.linspace(0, 358.75, 288))
+lattitudes = range(-78, 79)
+longitudes = list(numpy.linspace(0, 358.75, 288))
 
-    def __init__(self, settings, gmTime=datetime.utcnow()):
-        logging.debug('Creating the WaveForecast:' + str(gmTime))
-        self.gmTime = gmTime
-        self.tm_hour = chooseTime(gmTime)
-        
-    def getConditions(self, lattitude, longitude):
+def getWaveConditions(lattitude, longitude,gmTime=datetime.utcnow()):
+        tm_hour = chooseTime(gmTime)
         lattitude = round(float(lattitude));
         #Find closest in database...
         longitude = round(float(longitude) / 1.25) * 1.25
         if longitude < 0 and longitude > -180:
             longitude = 360 + longitude
 
-        lattitudeIndex = self.lattitudes.index(lattitude)
-        longitudeIndex = self.longitudes.index(longitude)
+        lattitudeIndex = lattitudes.index(lattitude)
+        longitudeIndex = longitudes.index(longitude)
         getForeCastThreads = []
         for variable in wavemetrics.keys():
             if variable == 'time'or variable == 'lat' or variable == 'lon':
                 continue
             logging.debug('Starting Thread: ' + variable)
-            newThread = GetForeCastThread(variable, self.gmTime, self.tm_hour,
+            newThread = GetForeCastThread(variable, gmTime, tm_hour,
                                           lattitudeIndex, longitudeIndex)
             newThread.start()
             getForeCastThreads.append(newThread)

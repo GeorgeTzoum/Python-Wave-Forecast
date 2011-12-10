@@ -26,24 +26,18 @@
 # CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-__author__="cooke"
-__date__ ="$27-Nov-2011 11:39:41$"
+__author__ = "cooke"
+__date__ = "$27-Nov-2011 11:39:41$"
 from datetime import datetime
 from datetime import timedelta
-from httplib import HTTP
-from httplib import HTTPConnection
 import logging
-from time import gmtime
-from time import strftime
-from urlparse import urlparse
+import threading
 
 import numpy
 from pydap.client import open_dods
-from pydap.client import open_url
 from pydap.exceptions import ServerError
 import pydap.lib
 pydap.lib.CACHE = "/tmp/pydap-cache/"
-logger=None
 wavemetrics = {
 'dirpwsfc':'** surface none primary wave direction [deg] ',
 'dirswsfc':'** surface none secondary wave direction [deg]',
@@ -59,92 +53,93 @@ wavemetrics = {
 #'time':'*'
 }
 
-class WaveForecast(object):
-    baseurl='http://nomads.ncep.noaa.gov:9090/dods/wave/nww3/nww3'
-    oururl='http://nomads.ncep.noaa.gov:9090/dods/wave/nww3/nww3'
-    dataset = None
-    lattitudes = range(-78,79)
-    longitudes = list(numpy.linspace(0,358.75,288))
+dataset = {}
+baseurl = 'http://nomads.ncep.noaa.gov:9090/dods/wave/nww3/nww3'
 
-    def __init__(self,settings,gmTime=datetime.utcnow()):
-        logging.debug('Creating the WaveForecast:'+str(gmTime))
+def chooseTime(gmTime):
+    if isinstance(gmTime, datetime):
+        gmTime = gmTime.utctimetuple()
+    if gmTime.tm_hour >= 18:
+        tm_hour = 18
+    elif gmTime.tm_hour >= 12:
+        tm_hour = 12
+    elif gmTime.tm_hour >= 6:
+        tm_hour = 6
+    else:
+        tm_hour = 0
+    logging.debug('Hour:' + str(tm_hour))
+    return tm_hour
+
+class GetForeCastThread(threading.Thread):
+    def __init__ (self, variable, gmTime, tm_hour, lattitudeIndex, longitudeIndex):
+        self.variable = variable
         self.gmTime = gmTime
-        self.tm_hour = self.chooseTime(gmTime)
-        
-    def chooseTime(self,gmTime):
-        if isinstance(gmTime, datetime):
-            gmTime = gmTime.utctimetuple()
-        if gmTime.tm_hour >= 18:
-            tm_hour = 18
-        elif gmTime.tm_hour >= 12:
-            tm_hour = 12
-        elif gmTime.tm_hour >= 6:
-            tm_hour = 6
-        else:
-            tm_hour = 0
-        logging.debug('Hour:'+str(tm_hour))
-        return tm_hour
-        
-    def getData(self,lattitudeIndex,longitudeIndex,variable):
+        self.tm_hour = tm_hour
+        self.lattitudeIndex = lattitudeIndex
+        self.longitudeIndex = longitudeIndex
+        threading.Thread.__init__ (self)
+
+    def getData(self):
         todayString = self.gmTime.strftime('%Y%m%d')
-        self.oururl = self.baseurl + todayString+'/nww3'+\
-            todayString+'_%02dz' % self.tm_hour
-        self.dodsUrl = self.oururl+".dods?"+\
-                "{2}.{2}[0:1:60][{0}:1:{0}][{1}:1:{1}]".format(
-                lattitudeIndex,longitudeIndex,variable)
-        logging.debug('DODS:'+self.dodsUrl)
+        global baseurl
+        oururl = baseurl + todayString + '/nww3' + \
+            todayString + '_%02dz' % self.tm_hour
+        dodsUrl = oururl + ".dods?" + \
+            "{2}.{2}[0:1:60][{0}:1:{0}][{1}:1:{1}]".format(
+                                                           self.lattitudeIndex,
+                                                           self.longitudeIndex,
+                                                           self.variable)
+        logging.debug('DODS:' + dodsUrl)
         try:
-            return open_dods(self.dodsUrl)
+            return open_dods(dodsUrl)
         except ServerError:
             logging.debug('URL DOES NOTEXIST')
             self.gmTime -= timedelta(hours=6)
-            self.tm_hour = self.chooseTime(self.gmTime)
-            return self.getData(lattitudeIndex,longitudeIndex,variable)
+            self.tm_hour = chooseTime(self.gmTime)
+            return self.getData()
 
-    def getConditions(self,lattitude,longitude):
+    def run (self):
+        global dataset
+        dataset[self.variable] = self.getData()
+
+class WaveForecast(object):
+    dataset = None
+    lattitudes = range(-78, 79)
+    longitudes = list(numpy.linspace(0, 358.75, 288))
+
+    def __init__(self, settings, gmTime=datetime.utcnow()):
+        logging.debug('Creating the WaveForecast:' + str(gmTime))
+        self.gmTime = gmTime
+        self.tm_hour = chooseTime(gmTime)
+        
+    def getConditions(self, lattitude, longitude):
         lattitude = round(float(lattitude));
         #Find closest in database...
-        longitude = round(float(longitude)/1.25)*1.25
+        longitude = round(float(longitude) / 1.25) * 1.25
         if longitude < 0 and longitude > -180:
-            longitude = 360+longitude
+            longitude = 360 + longitude
 
         lattitudeIndex = self.lattitudes.index(lattitude)
         longitudeIndex = self.longitudes.index(longitude)
-        results = dict();
+        getForeCastThreads = []
         for variable in wavemetrics.keys():
             if variable == 'time'or variable == 'lat' or variable == 'lon':
                 continue
-            logging.debug('Calling server: '+variable)
-            waves = self.getData(lattitudeIndex, longitudeIndex, variable)
-            logging.debug('Called server')
-            logging.debug(waves[variable])
-            logging.debug(waves[variable][0])
-            waveinfos = waves[variable]
-            results[wavemetrics[variable]] = waveinfos
-    
-        retDict = {'results':results,
-                              'lat':lattitude,
-                              'lon':longitude,}
-if __name__ == "__main__":
-    dataset = None
-    #dataset = open_url(url)
-    #print type(dataset)
-    #print dataset.keys()
-    for key,dirpwsfc in dataset.items():
-        print '########################################'
-        print key
-        if key != 'time':
-            data = dirpwsfc[ : , (-10 == dirpwsfc.lat) , (dirpwsfc.lon == 340) ]
-        else:
-            print data.array
-            print len(data.array)
+            logging.debug('Starting Thread: ' + variable)
+            newThread = GetForeCastThread(variable, self.gmTime, self.tm_hour,
+                                          lattitudeIndex, longitudeIndex)
+            newThread.start()
+            getForeCastThreads.append(newThread)
+            logging.debug('Thread Started')
 
-        try:
-            raw= data.array[:]
-            print 'The first one:'
-            print raw[0]
-            print 'The Secdond one'
-            print raw[1]
-        except Exception:
-            raw = data.array
-            print 'The value: '+str(raw.data)
+        logging.debug('\n\n\n-----------------------------------------------\nWaiting for threads to stop')
+        for thread in getForeCastThreads:
+            thread.join()
+        logging.debug('\n\n\n-----------------------------------------------\nAll threads stopped:'+str(dataset))
+
+        retDict = {'results':dataset,
+            'lat':lattitude,
+            'lon':longitude, }
+
+        return retDict
+

@@ -35,7 +35,7 @@ from math import fabs
 import unittest
 
 import pydap
-from waveforecast.core.waveforecast import chooseTime
+from waveforecast.core.waveforecast import chooseNearestHour
 from waveforecast.core.waveforecast import getWaveConditions
 import waveforecast.core.settings as settings
 class  WaveForecast_TestCase(unittest.TestCase):
@@ -49,23 +49,23 @@ class  WaveForecast_TestCase(unittest.TestCase):
     def test_choosetime(self):
         gmTime = datetime.utcnow()
         gmTime = gmTime.replace(hour=23)
-        self.assertEqual(chooseTime(gmTime),18)
+        self.assertEqual(chooseNearestHour(gmTime),18)
         gmTime = gmTime.replace(hour=18)
         self.assertEqual(gmTime.hour,18)
-        self.assertEqual(chooseTime(gmTime),18)
+        self.assertEqual(chooseNearestHour(gmTime),18)
         gmTime = gmTime.replace(hour=17)
         logging.debug(gmTime.hour)
-        self.assertEqual(chooseTime(gmTime),12)
+        self.assertEqual(chooseNearestHour(gmTime),12)
         gmTime = gmTime.replace(hour= 12)
-        self.assertEqual(chooseTime(gmTime),12)
+        self.assertEqual(chooseNearestHour(gmTime),12)
         gmTime = gmTime.replace(hour= 11)
-        self.assertEqual(chooseTime(gmTime),6)
+        self.assertEqual(chooseNearestHour(gmTime),6)
         gmTime = gmTime.replace(hour= 6)
-        self.assertEqual(chooseTime(gmTime),6)
+        self.assertEqual(chooseNearestHour(gmTime),6)
         gmTime = gmTime.replace(hour= 5)
-        self.assertEqual(chooseTime(gmTime),0)
+        self.assertEqual(chooseNearestHour(gmTime),0)
         gmTime = gmTime.replace(hour= 0)
-        self.assertEqual(chooseTime(gmTime),0)
+        self.assertEqual(chooseNearestHour(gmTime),0)
 
 
     def test_getconditions(self):

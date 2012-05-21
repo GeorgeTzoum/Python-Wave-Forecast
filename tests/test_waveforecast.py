@@ -70,7 +70,12 @@ class  WaveForecast_TestCase(unittest.TestCase):
 
     def test_getconditions(self):
         dataset = getWaveConditions(-34,-16);
+        #logging.debug(dataset)
+
+        dataset = getWaveConditions(10,10)
         logging.debug(dataset)
+        self.assertEqual(dataset['results']['dirpwsfc'][0],0)
+        self.assertEqual(dataset['results']['dirpwsfc'][60],0)
 
 if __name__ == '__main__':
     settings.setLogger()

@@ -36,7 +36,7 @@ import threading
 import numpy
 from pydap.client import open_dods
 from pydap.exceptions import ServerError
-import pydap.lib
+from pydap.model import BaseType
 #pydap.lib.CACHE = "/tmp/pydap-cache/"
 #The different Metrics:
 wavemetrics = {
@@ -55,7 +55,7 @@ wavemetrics = {
 
 dataset = {}
 baseurl = 'http://nomads.ncep.noaa.gov:9090/dods/wave/nww3/nww3'
-
+NODATA=0.0
 def chooseNearestHour(gmTime):
     if isinstance(gmTime, datetime):
         gmTime = gmTime.utctimetuple()
@@ -98,6 +98,12 @@ class GetForeCastThread(threading.Thread):
             self.tm_hour = chooseNearestHour(self.gmTime)
             return self.getData()
         #logging.debug(data[self.variable][:])
+        #logging.debug(type(data))
+        #logging.debug(type(data[self.variable]))
+        for key,value in enumerate(data[self.variable]):
+            if value>9.999e+20:
+                #logging.debug('No data;'+str(key)+':'+str(value))
+                data[self.variable].data[key]=NODATA
         return data[self.variable][:]
 
     def run (self):

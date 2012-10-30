@@ -36,7 +36,7 @@ import threading
 import numpy
 from pydap.client import open_dods
 from pydap.exceptions import ServerError
-import pydap.lib
+from pydap.model import BaseType
 #pydap.lib.CACHE = "/tmp/pydap-cache/"
 #The different Metrics:
 wavemetrics = {
@@ -55,8 +55,8 @@ wavemetrics = {
 
 dataset = {}
 baseurl = 'http://nomads.ncep.noaa.gov:9090/dods/wave/nww3/nww3'
-
-def chooseTime(gmTime):
+NODATA=0.0
+def chooseNearestHour(gmTime):
     if isinstance(gmTime, datetime):
         gmTime = gmTime.utctimetuple()
     if gmTime.tm_hour >= 18:
@@ -95,9 +95,15 @@ class GetForeCastThread(threading.Thread):
         except ServerError:
             logging.debug('URL DOES NOTEXIST')
             self.gmTime -= timedelta(hours=6)
-            self.tm_hour = chooseTime(self.gmTime)
+            self.tm_hour = chooseNearestHour(self.gmTime)
             return self.getData()
         #logging.debug(data[self.variable][:])
+        #logging.debug(type(data))
+        #logging.debug(type(data[self.variable]))
+        for key,value in enumerate(data[self.variable]):
+            if value>9.999e+20:
+                #logging.debug('No data;'+str(key)+':'+str(value))
+                data[self.variable].data[key]=NODATA
         return data[self.variable][:]
 
     def run (self):
@@ -109,8 +115,10 @@ longitudes = list(numpy.linspace(0, 358.75, 288))
 times = list(numpy.linspace(0, 60*3, 61))
 
 
-def getWaveConditions(lattitude, longitude,gmTime=datetime.utcnow()):
-        tm_hour = chooseTime(gmTime)
+def getWaveConditions(lattitude, longitude,gmTime=datetime.utcnow(),
+        getmetrics=wavemetrics.keys()):
+        tm_hour = chooseNearestHour(gmTime)
+        gmTime.replace(hour = tm_hour)
         lattitude = round(float(lattitude));
         #Find closest in database...
         longitude = round(float(longitude) / 1.25) * 1.25
@@ -120,7 +128,7 @@ def getWaveConditions(lattitude, longitude,gmTime=datetime.utcnow()):
         lattitudeIndex = lattitudes.index(lattitude)
         longitudeIndex = longitudes.index(longitude)
         getForeCastThreads = []
-        for variable in wavemetrics.keys():
+        for variable in getmetrics:
             if variable == 'time'or variable == 'lat' or variable == 'lon':
                 continue
             logging.debug('Starting Thread: ' + variable)
@@ -136,6 +144,7 @@ def getWaveConditions(lattitude, longitude,gmTime=datetime.utcnow()):
         logging.debug('\n\n\n-----------------------------------------------\nAll threads stopped:'+str(dataset))
 
         retDict = {
+            'gmTime':gmTime,
             'results':dataset,
             'lat':lattitude,
             'lon':longitude, }

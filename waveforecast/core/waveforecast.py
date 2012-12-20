@@ -53,6 +53,11 @@ wavemetrics = {
 'wvpersfc':'** surface none mean period of wind waves [s] ',
 }
 
+#Default grid for the NOAA data points.
+lattitudes = range(-78, 79)
+longitudes = list(numpy.linspace(0, 358.75, 288))
+times = list(numpy.linspace(0, 60*3, 61))
+
 dataset = {}
 baseurl = 'http://nomads.ncep.noaa.gov:9090/dods/wave/nww3/nww3'
 NODATA=0.0
@@ -110,11 +115,6 @@ class GetForeCastThread(threading.Thread):
         global dataset
         dataset[self.variable] = self.getData()
 
-lattitudes = range(-78, 79)
-longitudes = list(numpy.linspace(0, 358.75, 288))
-times = list(numpy.linspace(0, 60*3, 61))
-
-
 def getWaveConditions(lattitude, longitude,gmTime=datetime.utcnow(),
         getmetrics=wavemetrics.keys()):
         tm_hour = chooseNearestHour(gmTime)
@@ -150,4 +150,3 @@ def getWaveConditions(lattitude, longitude,gmTime=datetime.utcnow(),
             'lon':longitude, }
 
         return retDict
-
